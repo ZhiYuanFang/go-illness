@@ -1,0 +1,15 @@
+# 本地 overlay：暴露宿主机端口（与生产相同 9686），镜像仍为 :local。
+#
+# 示例：
+#   docker compose -p go-illness-local \
+#     -f manifest/docker/docker-compose.yml \
+#     -f manifest/docker/docker-compose.local.yml \
+#     --env-file manifest/docker/.env.local \
+#     up -d --build
+
+name: go-illness-local
+
+services:
+  illness-service:
+    ports:
+      - "9686:9686"

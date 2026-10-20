@@ -1,0 +1,22 @@
+# 生产 overlay：与基线 docker-compose.yml 组合使用。
+# 项目名 go-illness-prod。镜像来自 registry；启动前 pull，且 MUST 使用 --no-build。
+#
+# 示例：
+#   docker compose -p go-illness-prod \
+#     -f manifest/docker/docker-compose.yml \
+#     -f manifest/docker/docker-compose.prod.yml \
+#     --env-file manifest/docker/.env.prod \
+#     up -d --no-build
+
+name: go-illness-prod
+
+services:
+  illness-service:
+    image: ${REGISTRY}/illness-service:${IMAGE_TAG}
+    ports:
+      - "9686:9686"
+    networks: [go-illness-net]
+
+networks:
+  go-illness-net:
+    driver: bridge

@@ -1,0 +1,55 @@
+.buildpath
+.hgignore.swp
+.project
+.orig
+.swp
+.idea/
+.settings/
+.vscode/
+vendor/
+composer.lock
+gitpush.sh
+pkg/
+bin/
+cbuild
+**/.DS_Store
+.test/
+main
+output/
+manifest/output/
+temp/
+
+# --- 构建 / 调试产物 ---
+*.exe
+*.exe~
+*.test
+*.out
+__debug_bin*
+**/__debug_bin*
+*.dll
+*.so
+*.dylib
+
+# --- 日志与本地数据 ---
+*.log
+logs/
+*.pid
+
+# --- 覆盖率 / 性能分析 ---
+coverage.*
+*.cover
+*.prof
+
+# --- OS ---
+Thumbs.db
+Desktop.ini
+
+# --- 敏感环境文件（仅提交 .env.example）---
+.env
+.env.*
+!.env.example
+manifest/docker/.env
+manifest/docker/.env.*
+!manifest/docker/.env.example
+# 本地密钥仓：整目录不入库（真实 .env.prod/.env.test 等放此处）
+manifest/docker/env/

@@ -1,0 +1,29 @@
+# 数据库连接串 MUST 经环境变量 ILLNESS_DB_LINK（或 GF_DATABASE_DEFAULT_LINK）注入，勿在此填写真实密码。
+# OSS AccessKey MUST 经 ILLNESS_OSS_ACCESS_KEY_ID / ILLNESS_OSS_ACCESS_KEY_SECRET 注入。
+
+server:
+  address:     ":9686"
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+logger:
+  level: "all"
+  stdout: true
+
+database:
+  default:
+    # link 由启动时 dbcfg 从 ILLNESS_DB_LINK 写入；本地开发可临时取消下一行注释（勿提交真实密码）
+    # link: "mysql:user:password@tcp(127.0.0.1:3306)/illness"
+    debug: true
+
+# 与 go_ai_talk UCG OSS 同桶同 CDN；objectKey 前缀为本仓 illness/。
+# 上传接口改 OSS 直传见后续 OpenSpec change；本段仅配置基线。
+oss:
+  bucket: "caidoukeji"
+  region: "cn-hangzhou"
+  # 生产默认内网 endpoint；本地/非 VPC 可用 ILLNESS_OSS_ENDPOINT 覆盖为 oss-cn-hangzhou.aliyuncs.com
+  endpoint: "oss-cn-hangzhou-internal.aliyuncs.com"
+  accessKeyId: ""
+  accessKeySecret: ""
+  objectKeyPrefix: "illness/"
+  cdnBaseUrl: "https://resorce.cuplay.top"

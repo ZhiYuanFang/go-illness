@@ -1,0 +1,10 @@
+
+# CLI tool, only in development environment.
+# https://goframe.org/pages/viewpage.action?pageId=3673173
+# 真实连接串请用本地未提交配置，勿提交密码。
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:user:password@tcp(127.0.0.1:3306)/illness"
+        tables: "user"
+        jsonCase: "CamelLower"

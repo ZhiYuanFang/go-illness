@@ -1,0 +1,41 @@
+version: "3.9"
+# 本文件为单服务拓扑基线，面向本机开发：含 build 段与 go-illness/illness-service:local 镜像。
+#
+# 生产 / 测试部署 MUST 叠加 overlay 并从镜像仓库 pull（禁止在服务器上 --build 作为常态发布）：
+#   生产：… + docker-compose.prod.yml  →  project go-illness-prod
+#   测试：… + docker-compose.test.yml  →  project go-illness-test
+# 基线不含 ports，避免 prod/test overlay 合并时端口叠加。
+#
+# 业务库：ILLNESS_DB_LINK + 可选 MYSQL_TCP_HOST；OSS 密钥：ILLNESS_OSS_*。
+# 无 Redis / MQ / Nginx 容器；上传改造前不挂本地图片 volume。
+
+x-docker-logging: &docker-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  illness-service:
+    build:
+      context: ../..
+      dockerfile: manifest/docker/Dockerfile
+    image: go-illness/illness-service:local
+    container_name: go-illness-illness-service
+    restart: on-failure:1
+    logging: *docker-logging
+    environment:
+      TZ: Asia/Shanghai
+      GF_GCFG_FILE: manifest/config/config.yaml
+      ILLNESS_DB_LINK: "${ILLNESS_DB_LINK:-}"
+      MYSQL_TCP_HOST: "${MYSQL_TCP_HOST:-}"
+      GF_DATABASE_DEFAULT_LINK: "${ILLNESS_DB_LINK:-}"
+      ILLNESS_OSS_ACCESS_KEY_ID: "${ILLNESS_OSS_ACCESS_KEY_ID:-}"
+      ILLNESS_OSS_ACCESS_KEY_SECRET: "${ILLNESS_OSS_ACCESS_KEY_SECRET:-}"
+      ILLNESS_OSS_ENDPOINT: "${ILLNESS_OSS_ENDPOINT:-}"
+      GF_LOGGER_LEVEL: "${GF_LOGGER_LEVEL:-}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9686/api.json > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6

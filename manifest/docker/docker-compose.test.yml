@@ -1,0 +1,22 @@
+# 测试 overlay：与基线 docker-compose.yml 组合使用。
+# 项目名 go-illness-test。宿主机端口避开生产 9686（映射 19686）。
+#
+# 示例：
+#   docker compose -p go-illness-test \
+#     -f manifest/docker/docker-compose.yml \
+#     -f manifest/docker/docker-compose.test.yml \
+#     --env-file manifest/docker/.env.test \
+#     up -d --no-build
+
+name: go-illness-test
+
+services:
+  illness-service:
+    image: ${REGISTRY}/illness-service:${IMAGE_TAG}
+    ports:
+      - "19686:9686"
+    networks: [go-illness-net]
+
+networks:
+  go-illness-net:
+    driver: bridge
