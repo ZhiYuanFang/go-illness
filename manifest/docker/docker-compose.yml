@@ -20,7 +20,7 @@ services:
     build:
       context: ../..
       dockerfile: manifest/docker/Dockerfile
-    image: illness-service:local
+    image: ${REGISTRY}/illness-service:${IMAGE_TAG}
     container_name: illness-service
     restart: on-failure:1
     logging: *docker-logging
