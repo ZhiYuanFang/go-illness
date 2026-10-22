@@ -20,8 +20,8 @@ services:
     build:
       context: ../..
       dockerfile: manifest/docker/Dockerfile
-    image: go-illness/illness-service:local
-    container_name: go-illness-illness-service
+    image: illness-service:local
+    container_name: illness-service
     restart: on-failure:1
     logging: *docker-logging
     environment:
