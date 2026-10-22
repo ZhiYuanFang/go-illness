@@ -38,6 +38,23 @@ type UserRankUpdateReq struct {
 	Rank   int
 }
 
+// SyncLadderReq 本地对局结算同步：服务端按当前 rank 钳位 ±1、下限 3。
+type SyncLadderReq struct {
+	g.Meta        `path:"/syncLadder" method:"post"`
+	Id            int64
+	Win           bool
+	TutorialDone  bool // 教学胜利或跳过教学时置 true
+}
+
+type SyncLadderRes struct {
+	Id                int64  `json:"id"`
+	NickName          string `json:"nickName"`
+	Avatar            string `json:"avatar"`
+	Rank              int    `json:"rank"`
+	MaxRank           int    `json:"maxRank"`
+	TutorialCompleted bool   `json:"tutorialCompleted"`
+}
+
 type UserReliveUpdateReq struct {
 	g.Meta `path:"/reLive" method:"post"`
 	Id     int64

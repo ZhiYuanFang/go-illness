@@ -24,6 +24,7 @@ type RoomInfo struct {
 	TutorialStep    int    `json:"tutorialStep"`    // 当前教学步骤（从 0 起）
 	PhaseTip        string `json:"phaseTip"`        // 面向玩家的中文短提示
 	SuggestedAction string `json:"suggestedAction"` // none|verify|sleep|quarantine|prepare|tag|wait
+	PhaseEndsAt     int64  `json:"phaseEndsAt"`     // 当前相位预计结束 unix 秒；0 表示无时限
 }
 
 /*

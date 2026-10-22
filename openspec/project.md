@@ -9,7 +9,7 @@
 - Go（Golang）
 - GoFrame（HTTP 服务、路由、中间件、配置）
 - MySQL（库名 `illness`；与兄弟仓 `go_ai_talk` 可同实例、不同库）
-- 阿里云 OSS + CDN（与 go_ai_talk 同桶同 CDN，objectKey 前缀 `illness/`；上传接口改造另开 change）
+- 阿里云 OSS + CDN（与 go_ai_talk 同桶同 CDN，objectKey 前缀 `illness/`；`POST /upload` 服务端直传 OSS 并返回 CDN URL）
 - Docker Compose + 阿里云 ACR（单服务发版）
 - OpenSpec（变更提案、设计、任务与规格管理）
 
@@ -50,7 +50,7 @@
 - 部署入口：`manifest/docker/docker-compose.yml`（基线）+ `docker-compose.test.yml` / `docker-compose.prod.yml`（overlay）；敏感信息仅经 `.env*`（模板见 `manifest/docker/.env.example`）。
 - 镜像发版：`.github/workflows/docker-acr.yml`；`IMAGE_TAG` 由人工控制（起步可为 `v0.0.1`），与 git tag / 服务器 `.env` 对齐。
 - **HTTPS / Nginx**：不在本仓库维护 Nginx 或 TLS 配置；边缘反代由宿主机运维侧处理。Go 服务仅监听明文 HTTP（默认 `:9686`）。
-- **本地图片 volume**：不为上传目录声明业务挂卷；上传改 OSS 另开变更。
+- **本地图片 volume**：不为上传目录声明业务挂卷；上传走 OSS，不落本地盘。
 
 ### 数据库连接约定（强制）
 
@@ -62,7 +62,7 @@
 
 - 与 `go_ai_talk` **同桶同 CDN**（当前约定：`bucket=caidoukeji`，`cdnBaseUrl=https://resorce.cuplay.top`）；本仓 `objectKeyPrefix` MUST 为 **`illness/`**。
 - AccessKey MUST 经 **`ILLNESS_OSS_ACCESS_KEY_ID` / `ILLNESS_OSS_ACCESS_KEY_SECRET`**（及可选 `ILLNESS_OSS_ENDPOINT`）注入；yaml 中密钥字段留空。
-- **上传 HTTP 接口改造**（服务端直传 OSS、返回 CDN URL）MUST 另开 OpenSpec change；未完成前不得以本约定为由擅自改现有 `/upload` 契约。
+- **上传**：`POST /upload` MUST 服务端直传 OSS（前缀 `illness/`）并返回 CDN 绝对 URL；MUST NOT 再落本地盘或挂载静态 `/images` 提供上传产物。
 
 ### 小游戏 / 语音约定
 

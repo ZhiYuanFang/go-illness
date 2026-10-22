@@ -3,6 +3,7 @@ package main
 import (
 	"hello/internal/cmd"
 	"hello/internal/platform/dbcfg"
+	_ "hello/internal/platform/runtime"
 
 	"github.com/gogf/gf/v2/os/gctx"
 )

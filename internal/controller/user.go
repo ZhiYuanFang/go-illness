@@ -79,24 +79,83 @@ func (u *cUser) UpDateUserInfo(ctx context.Context, req *v1.UserInfoUpdateReq) (
 }
 
 func (u *cUser) UpDateUserRank(ctx context.Context, req *v1.UserRankUpdateReq) (res *v1.UserInfoRes, err error) {
+	// 废弃直写：改为钳位后的目标 rank（兼容旧客户端若仍调用）
 	eUser := entity.User{}
-	err = dao.User.Ctx(ctx).Where(do.User{
-		Id: req.Id,
-	}).Scan(&eUser)
-	if err == nil {
-		//更新Rank
-		if eUser.MaxRank < req.Rank {
-			_, err := dao.User.Ctx(ctx).Update(g.Map{"Rank": req.Rank, "MaxRank": req.Rank}, "id", req.Id)
-			return res, err
-		} else {
-			_, err := dao.User.Ctx(ctx).Update(g.Map{"Rank": req.Rank}, "id", req.Id)
-			return res, err
-		}
-
-	} else {
+	err = dao.User.Ctx(ctx).Where(do.User{Id: req.Id}).Scan(&eUser)
+	if err != nil {
 		return nil, err
 	}
+	target := req.Rank
+	if target > eUser.Rank+1 {
+		target = eUser.Rank + 1
+	}
+	if target < eUser.Rank-1 {
+		target = eUser.Rank - 1
+	}
+	if target < 3 {
+		target = 3
+	}
+	maxRank := eUser.MaxRank
+	if target > maxRank {
+		maxRank = target
+	}
+	_, err = dao.User.Ctx(ctx).Update(g.Map{"Rank": target, "MaxRank": maxRank}, "id", req.Id)
+	return &v1.UserInfoRes{
+		Id:                eUser.Id,
+		NickName:          eUser.NickName,
+		Avatar:            eUser.Avatar,
+		Lv:                eUser.Lv,
+		Rank:              target,
+		MaxRank:           maxRank,
+		UseLiveDay:        eUser.UseLiveDay,
+		TutorialCompleted: eUser.TutorialCompleted,
+	}, err
+}
 
+// SyncLadder 本地对局结算：胜 +1 / 负 −1，下限 3；可选标记教学完成。
+func (u *cUser) SyncLadder(ctx context.Context, req *v1.SyncLadderReq) (res *v1.SyncLadderRes, err error) {
+	if req.Id <= 0 {
+		return nil, errors.New("无效用户")
+	}
+	eUser := entity.User{}
+	err = dao.User.Ctx(ctx).Where(do.User{Id: req.Id}).Scan(&eUser)
+	if err != nil {
+		return nil, err
+	}
+	rank := eUser.Rank
+	if rank < 3 {
+		rank = 3
+	}
+	if req.Win {
+		rank = rank + 1
+	} else {
+		rank = rank - 1
+		if rank < 3 {
+			rank = 3
+		}
+	}
+	maxRank := eUser.MaxRank
+	if rank > maxRank {
+		maxRank = rank
+	}
+	data := g.Map{"Rank": rank, "MaxRank": maxRank}
+	tutDone := eUser.TutorialCompleted
+	if req.TutorialDone {
+		data[dao.User.Columns().TutorialCompleted] = true
+		tutDone = true
+	}
+	_, err = dao.User.Ctx(ctx).Data(data).Where(dao.User.Columns().Id, req.Id).Update()
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SyncLadderRes{
+		Id:                eUser.Id,
+		NickName:          eUser.NickName,
+		Avatar:            eUser.Avatar,
+		Rank:              rank,
+		MaxRank:           maxRank,
+		TutorialCompleted: tutDone,
+	}, nil
 }
 
 // 判断是否可以复活

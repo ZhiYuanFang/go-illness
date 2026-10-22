@@ -11,15 +11,14 @@ import (
 	"hello/internal/model/entity"
 	"io/ioutil"
 	"net/http"
-
 )
 
 type cLogin struct{}
 
 var Login = cLogin{}
 
-var APPID = "wxd830c2ab56b5798e"
-var APPSECRET = "7eaf16e49f5e74472207bf15f280565b"
+var APPID = "wx070559b32e91d90e"
+var APPSECRET = "0f3afea8e65bd34f9db9d6b70652281a"
 
 type WXBody struct {
 	openid      string

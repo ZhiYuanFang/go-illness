@@ -36,28 +36,8 @@ func init() {
 
 // 第一步 玩家开启天梯 / 教学局（IsTutorial=true 时固定 4 人且非 lying）
 func (c *cNextIllness) CreateRoom(ctx context.Context, req *v1.IllnessCreateRoomReq) (res *v1.IllnessCreateRoomRes, err error) {
-	//判断当前玩家是否已经在游戏房间内
-	playerId := req.Id
-	roomId := GetPlayerRoomID(playerId)
-	if roomId > 0 {
-		//已经在房间
-		go SendWS2PlayerWithRoomInfo(playerId, roomId)
-	} else {
-		isLying := req.IsLyingType
-		roomNumber := req.RoomNumber
-		isTutorial := req.IsTutorial
-		if isTutorial {
-			// 教学局：服务端权威人数与模式
-			isLying = false
-			roomNumber = 4
-		}
-		_, err = CreateNewRoom(ctx, playerId, isLying, roomNumber, isTutorial)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return nil, nil
+	// 对局已迁客户端 LocalEngine；房间/WS 主路径停用
+	return nil, errors.New("对局已改为本地，请使用客户端引擎")
 }
 
 // SkipTutorial 主动跳过教学并持久化完成标记（无需已在教学房内）。
@@ -490,7 +470,8 @@ func CreateMachinInfo(machinID int64) (playerInfo *illness.PlayerInfo) {
 	return &illness.PlayerInfo{
 		Id:            machinID,
 		NickName:      fmt.Sprint(machinID*-1, "号"),
-		Avatar:        "https://120.55.50.105:9686/images/robot_avatar.webp",
+		// 约定对象 illness/robot_avatar.webp；若 CDN 404 需运维上传一次到同桶前缀。
+		Avatar: "https://resorce.cuplay.top/illness/robot_avatar.webp",
 		Lv:            0,
 		StartWaitTime: time.Now().Unix(),
 		IsSleep:       true, //默认进入睡眠状态
@@ -559,7 +540,8 @@ func CreateNewRoom(ctx context.Context, playerId int64, isLyingType bool, roomNu
 		TutorialStep:    0,
 	}
 	if isTutorial {
-		ApplyTutorialTip(room)
+		RefreshPhaseEndsAt(room)
+		ApplyPhaseGuidance(room)
 	}
 
 	//将房间加入房间集合
@@ -810,6 +792,11 @@ func SendWS2AllPlayerOnlyStatus(roomId int64, gameStat int) (err error) {
 		if room != nil {
 			room.GameStat = gameStat
 			fmt.Println("修改GameStat", room.GameStat)
+			if gameStat == consts.NightState && room.CurrentNightTimeStamp == 0 {
+				room.CurrentNightTimeStamp = time.Now().Unix()
+			}
+			RefreshPhaseEndsAt(room)
+			ApplyPhaseGuidance(room)
 			SendWS2AllPlayerOnlyRoom(roomId)
 		} else {
 			fmt.Println("当前房间不存在")

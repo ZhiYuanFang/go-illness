@@ -17,7 +17,7 @@ database:
     debug: true
 
 # 与 go_ai_talk UCG OSS 同桶同 CDN；objectKey 前缀为本仓 illness/。
-# 上传接口改 OSS 直传见后续 OpenSpec change；本段仅配置基线。
+# POST /upload 经 ILLNESS_OSS_* 直传本段配置的桶，返回 cdnBaseUrl 绝对 URL。
 oss:
   bucket: "caidoukeji"
   region: "cn-hangzhou"

@@ -2,7 +2,9 @@ package controller
 
 import (
 	"errors"
+	"time"
 
+	"hello/internal/consts"
 	"hello/internal/model/illness"
 )
 
@@ -39,17 +41,17 @@ type TutorialStepDef struct {
 var tutorialSteps = []TutorialStepDef{
 	{
 		AllowedActions:  []string{TutorialActionPrepare},
-		PhaseTip:        "欢迎来到教学局：请点击「准备」，全员就绪后将自动发牌并入夜。",
+		PhaseTip:        "教学：点下方「准备」。全员就绪后将发身份并入夜。",
 		SuggestedAction: SuggestedPrepare,
 	},
 	{
 		AllowedActions:  []string{TutorialActionVerify},
-		PhaseTip:        "入夜后请查验一名玩家。真医生看到真实感染状态；天梯下庸医结果会取反。",
+		PhaseTip:        "教学：点头像查验感染。真医生看真相；天梯下庸医结果会取反。",
 		SuggestedAction: SuggestedVerify,
 	},
 	{
 		AllowedActions:  []string{TutorialActionQuarantine},
-		PhaseTip:        "白天请隔离你认为已感染的人。隔离健康玩家会失败；隔离全部感染者则胜利。",
+		PhaseTip:        "教学：点头像隔离嫌疑人。误隔健康者即败；隔对全部感染者则胜。",
 		SuggestedAction: SuggestedQuarantine,
 	},
 }
@@ -69,12 +71,73 @@ func ApplyTutorialTip(room *illness.RoomInfo) {
 	}
 	def := GetTutorialStep(room.TutorialStep)
 	if def == nil {
-		room.PhaseTip = "教学步骤已完成，可结算或退出。"
+		room.PhaseTip = "教学完成：可查看结算或返回。"
 		room.SuggestedAction = SuggestedNone
 		return
 	}
 	room.PhaseTip = def.PhaseTip
 	room.SuggestedAction = def.SuggestedAction
+}
+
+// ApplyPhaseGuidance 教学优先；否则按 GameStat 填充天梯/娱乐局 tip。
+func ApplyPhaseGuidance(room *illness.RoomInfo) {
+	if room == nil {
+		return
+	}
+	if room.IsTutorial {
+		ApplyTutorialTip(room)
+		return
+	}
+	switch room.GameStat {
+	case consts.RoomWait:
+		room.PhaseTip = "在等：全员准备后开始。"
+		room.SuggestedAction = SuggestedPrepare
+	case consts.IdentifySendState:
+		room.PhaseTip = "身份已下达，请确认你的角色牌。"
+		room.SuggestedAction = SuggestedWait
+	case consts.NightState:
+		room.PhaseTip = "入夜：医生点头像查验；平民等待天亮。"
+		room.SuggestedAction = SuggestedVerify
+	case consts.DayState:
+		room.PhaseTip = "白天：点头像隔离你认定的感染者（误隔即败）。"
+		room.SuggestedAction = SuggestedQuarantine
+	case consts.GameOver:
+		room.PhaseTip = "本局结束。"
+		room.SuggestedAction = SuggestedNone
+	default:
+		if room.PhaseTip == "" {
+			room.PhaseTip = "在等：阶段同步…"
+			room.SuggestedAction = SuggestedWait
+		}
+	}
+}
+
+// RefreshPhaseEndsAt 按当前 GameStat 写入相位结束时刻。
+func RefreshPhaseEndsAt(room *illness.RoomInfo) {
+	if room == nil {
+		return
+	}
+	now := time.Now().Unix()
+	switch room.GameStat {
+	case consts.NightState:
+		nt := room.NightTime
+		if nt <= 0 {
+			nt = 8
+		}
+		if room.CurrentNightTimeStamp > 0 {
+			room.PhaseEndsAt = room.CurrentNightTimeStamp + int64(nt)
+		} else {
+			room.PhaseEndsAt = now + int64(nt)
+		}
+	case consts.DayState:
+		st := room.SpeakTime
+		if st <= 0 {
+			st = 20
+		}
+		room.PhaseEndsAt = now + int64(st)
+	default:
+		room.PhaseEndsAt = 0
+	}
 }
 
 // TutorialGate 教学房统一动作门禁；非教学房直接放行。

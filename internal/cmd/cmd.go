@@ -2,45 +2,90 @@ package cmd
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"strconv"
+	"io"
+	"strings"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gfile"
-	"github.com/gogf/gf/v2/os/glog"
 
-	"hello/internal/consts"
 	"hello/internal/controller"
+	"hello/internal/platform/ossclient"
 	"hello/internal/service"
 )
 
-// MAC 本地服务器需要
-var FileDir = "/Users/mac/Desktop/go_server_illness_images/"
-var StaticPath = "images"
-
+// Upload 将 multipart 文件直传 OSS，响应 CDN 绝对 URL（兼容字段 upload-file、header md5）。
 func Upload(r *ghttp.Request) {
-	files := r.GetUploadFiles("upload-file") //图片校验交给客户端重命名md5值
-	md5 := r.Header.Get("md5")
-	md5Png := md5 + ".png"
-	if gfile.Exists(FileDir + md5Png) {
-		println("文件已存在")
-		r.Response.WriteExit(StaticPath + "/" + md5Png)
+	ctx := r.Context()
+	client, err := ossclient.New(ctx)
+	if err != nil {
+		r.Response.WriteStatusExit(500, err.Error())
 		return
-	} else {
-		//修改files的文件名
-		files[0].Filename = md5Png
-		println("存入的文件")
-		println(files[0].Filename)
-		_, err := files.Save(FileDir)
-		if err != nil {
-			r.Response.WriteExit(err)
-		} else {
-			r.Response.WriteExit(StaticPath + "/" + files[0].Filename)
-		}
-
 	}
+	files := r.GetUploadFiles("upload-file")
+	if len(files) == 0 || files[0] == nil {
+		r.Response.WriteStatusExit(400, "缺少 upload-file")
+		return
+	}
+
+	md5 := strings.TrimSpace(r.Header.Get("md5"))
+	var objectName string
+	if md5 != "" {
+		objectName = md5 + ".png"
+	} else {
+		objectName = randomObjectName() + ".png"
+	}
+	objectKey := client.Config().ObjectKey(objectName)
+
+	// 幂等：同 md5 已存在则直接返回 CDN URL
+	if md5 != "" {
+		exists, existErr := client.Exists(objectKey)
+		if existErr != nil {
+			r.Response.WriteStatusExit(500, existErr.Error())
+			return
+		}
+		if exists {
+			r.Response.WriteExit(client.Config().CDNURL(objectKey))
+			return
+		}
+	}
+
+	f, err := files[0].Open()
+	if err != nil {
+		r.Response.WriteStatusExit(400, err.Error())
+		return
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		r.Response.WriteStatusExit(400, err.Error())
+		return
+	}
+	if len(data) == 0 {
+		r.Response.WriteStatusExit(400, "空文件")
+		return
+	}
+
+	cdnURL, err := client.PutBytes(objectKey, data, "image/png")
+	if err != nil {
+		r.Response.WriteStatusExit(500, err.Error())
+		return
+	}
+	r.Response.WriteExit(cdnURL)
+}
+
+// randomObjectName 在无 md5 header 时生成唯一对象名片段。
+func randomObjectName() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(b[:])
 }
 
 var (
@@ -50,34 +95,14 @@ var (
 		Brief: "start http server",
 
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
-			// 如果FileDir不存在则创建
-			if !gfile.Exists(FileDir) {
-				gfile.Mkdir(FileDir)
-			}
 			s := g.Server()
-			s.SetFileServerEnabled(true)
-			s.SetIndexFolder(true)
-			s.AddStaticPath("/"+StaticPath, FileDir)
 			s.BindHandler("/", func(r *ghttp.Request) {
 				r.Response.Write("病变")
 			})
 
-			// ******** 链接websocket的时候 携带用户ID、房间ID ws://127.0.0.1:9686/person?id=1
+			// WebSocket 房间推送已停用（对局迁本地引擎）；保留端点便于旧客户端探测
 			s.BindHandler("/person", func(r *ghttp.Request) {
-				var ctx = r.Context()
-				ws, err := r.WebSocket()
-				playerid, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
-				if err != nil {
-					fmt.Println("ID错误")
-					r.Exit()
-				}
-				consts.PersonWSArr[playerid] = ws
-				fmt.Println(fmt.Sprintf("有用户进入长连接，当前长连接的集合结果：", consts.PersonWSArr))
-				if err != nil {
-					fmt.Println(r.URL)
-					glog.Error(ctx, err)
-					r.Exit()
-				}
+				r.Response.WriteStatusExit(410, "websocket room gone; use local engine")
 			})
 			//api
 			s.Use(ghttp.MiddlewareHandlerResponse) //统一格式处理
@@ -101,7 +126,6 @@ var (
 				})
 			})
 			s.SetServerRoot(gfile.MainPkgPath()) //设置exe文件生成位子
-			// s.EnableHTTPS("/Users/mac/Desktop/lovelin/lovelin.cuplay.top.pem", "/Users/mac/Desktop/lovelin/lovelin.cuplay.top.key")
 			s.Run()
 			return nil
 		},
