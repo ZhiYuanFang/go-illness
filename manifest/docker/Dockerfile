@@ -1,5 +1,6 @@
 # 多阶段构建：CI / 本地均可从源码产出 illness-service 镜像（不依赖预编译 main）。
-FROM m.daocloud.io/docker.io/library/golang:1.19-alpine AS builder
+# 基础镜像使用 Docker Hub 官方短名；国内加速请在本机/CI 配置 registry-mirrors，勿写死代理前缀。
+FROM golang:1.19-alpine AS builder
 
 ENV GOPROXY=https://goproxy.cn,https://goproxy.io,direct
 WORKDIR /src
@@ -9,7 +10,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/illness-service .
 
-FROM m.daocloud.io/docker.io/library/alpine:3.19
+FROM alpine:3.19
 
 RUN apk add --no-cache tzdata ca-certificates wget
 ENV TZ=Asia/Shanghai

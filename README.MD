@@ -61,4 +61,8 @@ cd d:\work\go-illness
 - `make cli`：安装/更新 GoFrame CLI
 - `make dao` / `make service`：按 `hack` 配置生成 DAO / service 接口
 
+## 镜像构建
+
+`manifest/docker/Dockerfile` 基础镜像为官方名（`golang:1.19-alpine` / `alpine:3.19`）。国内拉取慢时请在 Docker Desktop / daemon 配置 `registry-mirrors`，不要在 Dockerfile 里写死第三方代理前缀。`GOPROXY` 仅加速 `go mod`，与 registry 无关。
+
 部署与 Compose 见 `manifest/docker/` 与 OpenSpec `openspec/project.md`。
