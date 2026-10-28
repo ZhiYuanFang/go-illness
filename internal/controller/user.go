@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	v1 "hello/api/v1"
+	"hello/internal/consts"
 	"hello/internal/dao"
 	"hello/internal/model/do"
 	"hello/internal/model/entity"
@@ -92,8 +93,8 @@ func (u *cUser) UpDateUserRank(ctx context.Context, req *v1.UserRankUpdateReq) (
 	if target < eUser.Rank-1 {
 		target = eUser.Rank - 1
 	}
-	if target < 3 {
-		target = 3
+	if target < consts.RankMin {
+		target = consts.RankMin
 	}
 	maxRank := eUser.MaxRank
 	if target > maxRank {
@@ -112,7 +113,7 @@ func (u *cUser) UpDateUserRank(ctx context.Context, req *v1.UserRankUpdateReq) (
 	}, err
 }
 
-// SyncLadder 本地对局结算：胜 +1 / 负 −1，下限 3；可选标记教学完成。
+// SyncLadder 本地对局结算：胜 +1 / 负 −1，下限 consts.RankMin（1）；可选标记教学完成。
 func (u *cUser) SyncLadder(ctx context.Context, req *v1.SyncLadderReq) (res *v1.SyncLadderRes, err error) {
 	if req.Id <= 0 {
 		return nil, errors.New("无效用户")
@@ -123,15 +124,15 @@ func (u *cUser) SyncLadder(ctx context.Context, req *v1.SyncLadderReq) (res *v1.
 		return nil, err
 	}
 	rank := eUser.Rank
-	if rank < 3 {
-		rank = 3
+	if rank < consts.RankMin {
+		rank = consts.RankMin
 	}
 	if req.Win {
 		rank = rank + 1
 	} else {
 		rank = rank - 1
-		if rank < 3 {
-			rank = 3
+		if rank < consts.RankMin {
+			rank = consts.RankMin
 		}
 	}
 	maxRank := eUser.MaxRank

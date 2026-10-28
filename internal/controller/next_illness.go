@@ -684,7 +684,7 @@ func IdentityDistribution_SingleIdentity(inPlayer *illness.PlayerInfo, waitIdent
 }
 
 // 游戏结束
-// 天梯契约：非 lying 且非教学局时，房主 rank 胜 +1 / 负 −1 / 下限 3（失败不会重置为 3）。
+// 天梯契约：非 lying 且非教学局时，房主 rank 胜 +1 / 负 −1 / 下限 consts.RankMin（1）。
 func GameOver(room *illness.RoomInfo, IsSuccess bool) {
 	room.IsSuccess = IsSuccess
 	// 非说谎、非教学：修改房主天梯值
@@ -698,8 +698,8 @@ func GameOver(room *illness.RoomInfo, IsSuccess bool) {
 					rank++
 				} else {
 					rank--
-					if rank < 3 {
-						rank = 3
+					if rank < consts.RankMin {
+						rank = consts.RankMin
 					}
 				}
 				fmt.Println("修改RANK值", rank)

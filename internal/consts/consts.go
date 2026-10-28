@@ -18,6 +18,9 @@ const StartState = 1        //房间开启
 const IdentifySendState = 2 //身份分发完成
 const NightState = 3        //入夜（玩家行动） 携带倒计时
 const DayState = 4          //白天 携带倒计时
+
+// RankMin 天梯等级账本下限（与前端 ladder-outcome-rank-gate 的 RANK_MIN=1 对齐；席位下限另由客户端处理）。
+const RankMin = 1
 // const RowWheat = 5          //排麦【NowSpeekPlayer 就是现在要开麦说话的人】
 // const DivideState = 6       //隔离 有人触发了隔离功能
 // const SleepState = 7        //入眠 有人触发了隔离功能

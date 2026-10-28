@@ -38,7 +38,7 @@ type UserRankUpdateReq struct {
 	Rank   int
 }
 
-// SyncLadderReq 本地对局结算同步：服务端按当前 rank 钳位 ±1、下限 3。
+// SyncLadderReq 本地对局结算同步：服务端按当前 rank 钳位 ±1、下限 1（consts.RankMin）。
 type SyncLadderReq struct {
 	g.Meta        `path:"/syncLadder" method:"post"`
 	Id            int64
